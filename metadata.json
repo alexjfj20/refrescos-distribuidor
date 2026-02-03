@@ -1,0 +1,9 @@
+{
+  "name": "Refrescos Santander - Wholesale Beverages",
+  "description": "Professional wholesale beverage platform for Refrescos Santander, featuring AI-powered marketing tools, voice assistance, and business optimization.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
