@@ -19,19 +19,43 @@ export class GeminiService {
     return new GoogleGenerativeAI(apiKey);
   }
 
-  // Basic Text / Business Chat - MODELO ACTUALIZADO
+  // Basic Text / Business Chat - Usando fetch directo para control total
   static async chatWithBusinessAI(message: string, history: any[] = []) {
     try {
-      const genAI = this.getAI();
-      // CAMBIO CRÍTICO: usar gemini-1.5-flash en lugar de gemini-pro
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || '';
       
-      const result = await model.generateContent(message);
-      const response = await result.response;
-      const text = response.text();
+      if (!apiKey) {
+        throw new Error('API key no configurada');
+      }
+
+      // Usar la API REST directamente con v1 (no v1beta)
+      const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: message
+            }]
+          }]
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Error de API:', errorData);
+        throw new Error(`Error de API: ${errorData.error?.message || 'Error desconocido'}`);
+      }
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar una respuesta.';
 
       return {
-        text: text || 'No se pudo generar una respuesta.',
+        text: text,
         sources: []
       };
     } catch (error: any) {
