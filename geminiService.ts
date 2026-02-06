@@ -3,31 +3,41 @@ import { GoogleGenAI, Type, GenerateContentResponse, Modality } from "@google/ge
 
 export class GeminiService {
   private static getAI() {
-    return new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
+    // Más robusto: intenta ambas variables de entorno
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || '';
+    
+    if (!apiKey) {
+      throw new Error('La API key de Gemini no está configurada. Verifica las variables de entorno.');
+    }
+    
+    return new GoogleGenAI({ apiKey });
   }
 
   // Basic Text / Business Chat (Using gemini-pro for stability)
   static async chatWithBusinessAI(message: string, history: any[] = []) {
-    const ai = this.getAI();
-    
-    // Correct model initialization
-    const model = ai.models.get('gemini-pro');
-    
-    const chat = model.startChat({
-      history: history,
-      generationConfig: {
-        maxOutputTokens: 500
-      }
-    });
-    
-    const result = await chat.sendMessage(message);
-    const response = result.response;
-    const text = response.text();
+    try {
+      const ai = this.getAI();
+      const model = ai.models.get('gemini-pro');
+      
+      const chat = model.startChat({
+        history: history,
+        generationConfig: {
+          maxOutputTokens: 500
+        }
+      });
+      
+      const result = await chat.sendMessage(message);
+      const response = result.response;
+      const text = response.text();
 
-    return {
-      text: text,
-      sources: []
-    };
+      return {
+        text: text,
+        sources: []
+      };
+    } catch (error: any) {
+      console.error('Error en chatWithBusinessAI:', error);
+      throw new Error(error.message || 'Error al conectar con la IA');
+    }
   }
 
   // Low Latency FAQ (Gemini 2.5 Flash Lite)
@@ -102,7 +112,8 @@ export class GeminiService {
     }
 
     const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-    const response = await fetch(`${downloadLink}&key=${import.meta.env.VITE_GEMINI_API_KEY}`);
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || '';
+    const response = await fetch(`${downloadLink}&key=${apiKey}`);
     const blob = await response.blob();
     return URL.createObjectURL(blob);
   }
