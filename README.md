@@ -6,7 +6,7 @@
 
 This contains everything you need to run your app locally.
 
-View your app in AI Studio: https://ai.studio/apps/drive/14o3M3knD1SUCd9CWfNBr6BcOW2uuDXkO
+View your app in Firebase Studio: https://studio.firebase.google.com/refrescos-distrigit-86042654
 
 ## Run Locally
 
