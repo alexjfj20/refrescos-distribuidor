@@ -3,7 +3,8 @@ import { GoogleGenAI, Type, GenerateContentResponse, Modality } from "@google/ge
 
 export class GeminiService {
   private static getAI() {
-    return new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    // Use VITE_GEMINI_API_KEY which is safe to expose on the client
+    return new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
   }
 
   // Basic Text / Business Chat (Gemini 3 Pro)
@@ -96,7 +97,7 @@ export class GeminiService {
     }
 
     const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-    const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+    const response = await fetch(`${downloadLink}&key=${import.meta.env.VITE_GEMINI_API_KEY}`);
     const blob = await response.blob();
     return URL.createObjectURL(blob);
   }
