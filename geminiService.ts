@@ -1,41 +1,44 @@
 
-import { GoogleGenAI, Type, GenerateContentResponse, Modality } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
 export class GeminiService {
   private static getAI() {
-    // Más robusto: intenta ambas variables de entorno
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || '';
     
     if (!apiKey) {
+      console.error('❌ API Key no encontrada. Variables disponibles:', {
+        VITE_GEMINI_API_KEY: import.meta.env.VITE_GEMINI_API_KEY,
+        GEMINI_API_KEY: import.meta.env.GEMINI_API_KEY
+      });
       throw new Error('La API key de Gemini no está configurada. Verifica las variables de entorno.');
     }
     
+    console.log('✅ API Key encontrada, inicializando GoogleGenAI...');
     return new GoogleGenAI({ apiKey });
   }
 
-  // Basic Text / Business Chat (Using gemini-pro for stability)
+  // Basic Text / Business Chat
   static async chatWithBusinessAI(message: string, history: any[] = []) {
     try {
       const ai = this.getAI();
-      const model = ai.models.get('gemini-pro');
       
-      const chat = model.startChat({
-        history: history,
-        generationConfig: {
+      // Usar generateContent en lugar de startChat para mayor compatibilidad
+      const response = await ai.models.generateContent({
+        model: 'gemini-pro',
+        contents: message,
+        config: {
           maxOutputTokens: 500
         }
       });
       
-      const result = await chat.sendMessage(message);
-      const response = result.response;
-      const text = response.text();
+      const text = response.text || 'No se pudo generar una respuesta.';
 
       return {
         text: text,
         sources: []
       };
     } catch (error: any) {
-      console.error('Error en chatWithBusinessAI:', error);
+      console.error('❌ Error en chatWithBusinessAI:', error);
       throw new Error(error.message || 'Error al conectar con la IA');
     }
   }
