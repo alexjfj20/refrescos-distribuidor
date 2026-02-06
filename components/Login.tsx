@@ -90,6 +90,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
           </button>
         </form>
 
+        <div className="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-500">
+            <p className="font-bold text-slate-600 mb-2">Credenciales de Acceso (Admin):</p>
+            <p><span className="font-semibold">Correo electrónico:</span> admin@rsantander.com</p>
+            <p><span className="font-semibold">Contraseña:</span> admin123</p>
+        </div>
+
         <div className="mt-8 text-center text-slate-400 text-sm">
           <p>¿Olvidaste tu contraseña? <a href="#" className="text-sky-600 font-bold hover:underline">Contactar Soporte IT</a></p>
         </div>

@@ -7,28 +7,28 @@ const ProductSection: React.FC = () => {
       name: 'Agua Embotellada',
       desc: 'Pureza Santander en diversos formatos desde 330ml hasta 20L.',
       icon: 'fa-droplet',
-      img: 'https://images.unsplash.com/photo-1616118132283-da81ba852e4a?q=80&w=800&auto=format&fit=crop',
+      img: '/ingen/refresco05.png',
       color: 'bg-blue-500'
     },
     {
       name: 'Bebidas Energéticas',
       desc: 'Máximo rendimiento y energía para consumidores activos.',
       icon: 'fa-bolt',
-      img: 'https://images.unsplash.com/photo-1570733577524-3a047079e80d?q=80&w=800&auto=format&fit=crop',
+      img: '/ingen/refresco08.png',
       color: 'bg-yellow-500'
     },
     {
       name: 'Refrescos con Gas',
       desc: 'Sabor tradicional y refrescante para todo tipo de eventos.',
       icon: 'fa-bottle-water',
-      img: 'https://images.unsplash.com/photo-1622483767028-3f66f328ef97?q=80&w=800&auto=format&fit=crop',
+      img: '/ingen/refresco07.png',
       color: 'bg-red-500'
     },
     {
       name: 'Jugos Naturales',
       desc: 'Selección premium de néctares y jugos 100% fruta.',
       icon: 'fa-apple-whole',
-      img: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?q=80&w=800&auto=format&fit=crop',
+      img: '/ingen/refresco13.png',
       color: 'bg-orange-500'
     }
   ];

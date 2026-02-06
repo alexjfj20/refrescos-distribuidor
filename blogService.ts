@@ -22,7 +22,7 @@ const initialPosts: BlogPost[] = [
     title: 'Importancia de la Hidratación en el Trabajo',
     slug: 'importancia-hidratacion-trabajo',
     content: '<p>Mantener a tu equipo hidratado no solo es una cuestión de salud, sino de productividad neta...</p>',
-    imageUrl: 'https://images.unsplash.com/photo-1523362628242-4a7458ef346f?q=80&w=800',
+    imageUrl: '/ingen/refresco05.png',
     isActive: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()

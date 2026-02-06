@@ -46,7 +46,7 @@ const Hero: React.FC<HeroProps> = ({ onQuoteClick }) => {
           <div className="overflow-hidden rounded-[50px] shadow-[0_30px_60px_-15px_rgba(2,132,199,0.3)] border-[12px] border-white bg-slate-100 transition-all duration-700">
             <img 
               id="hero-image"
-              src="https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?q=80&w=2000&auto=format&fit=crop" 
+              src="/ingen/refresco12.png" 
               alt="Refrescos y cócteles coloridos de Refrescos Santander" 
               className="w-full object-cover transform group-hover:scale-105 transition-transform duration-1000"
               style={{ height: '558px' }} // Forced original horizontal height
