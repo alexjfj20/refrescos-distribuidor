@@ -7,7 +7,7 @@ export class GeminiService {
     // TEMPORAL: Fallback para desarrollo
     if (!apiKey && import.meta.env.DEV) {
       console.warn('⚠️ Usando API key de desarrollo temporal. Configura VITE_GEMINI_API_KEY en .env');
-      apiKey = 'AIzaSyC8your_actual_api_key_here'; // REEMPLAZAR CON TU KEY REAL DE GOOGLE AI STUDIO
+      apiKey = 'TU_API_KEY_AQUI'; // REEMPLAZAR CON TU KEY REAL
     }
     
     if (!apiKey) {
@@ -19,11 +19,12 @@ export class GeminiService {
     return new GoogleGenerativeAI(apiKey);
   }
 
-  // Basic Text / Business Chat
+  // Basic Text / Business Chat - MODELO ACTUALIZADO
   static async chatWithBusinessAI(message: string, history: any[] = []) {
     try {
       const genAI = this.getAI();
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      // CAMBIO CRÍTICO: usar gemini-1.5-flash en lugar de gemini-pro
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       
       const result = await model.generateContent(message);
       const response = await result.response;
@@ -42,21 +43,21 @@ export class GeminiService {
   // Low Latency FAQ
   static async quickFaq(question: string) {
     const genAI = this.getAI();
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const result = await model.generateContent(question);
     const response = await result.response;
     return response.text();
   }
 
-  // Image Generation - NOTA: Gemini Pro no genera imágenes, solo analiza
+  // Image Generation - NOTA: Gemini no genera imágenes
   static async generateMarketingImage(prompt: string, size: '1K' | '2K' | '4K' = '1K') {
-    throw new Error('La generación de imágenes requiere un modelo diferente (Imagen o DALL-E)');
+    throw new Error('La generación de imágenes requiere un modelo diferente (Imagen 3 o DALL-E)');
   }
 
-  // Image Analysis (Gemini Pro Vision)
+  // Image Analysis (Gemini 1.5 Flash con visión)
   static async editProductImage(base64Image: string, prompt: string) {
     const genAI = this.getAI();
-    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
     const imageParts = [{
       inlineData: {
@@ -78,7 +79,7 @@ export class GeminiService {
   // Map/Location search
   static async findNearbyDistributors(lat: number, lng: number) {
     const genAI = this.getAI();
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
     const prompt = `Basándote en las coordenadas ${lat}, ${lng}, sugiere tipos de lugares donde podría encontrar distribuidores de bebidas mayoristas o almacenes grandes relacionados con Refrescos Santander.`;
     
