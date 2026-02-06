@@ -7,19 +7,17 @@ export class GeminiService {
     // TEMPORAL: Fallback para desarrollo
     if (!apiKey && import.meta.env.DEV) {
       console.warn('⚠️ Usando API key de desarrollo temporal. Configura VITE_GEMINI_API_KEY en .env');
-      apiKey = 'TU_API_KEY_AQUI'; // REEMPLAZAR CON TU KEY REAL
+      apiKey = 'TU_API_KEY_AQUI';
     }
     
     if (!apiKey) {
-      console.error('❌ API Key no encontrada');
-      throw new Error('La API key de Gemini no está configurada. Verifica las variables de entorno.');
+      throw new Error('La API key de Gemini no está configurada.');
     }
     
-    console.log('✅ API Key encontrada, inicializando GoogleGenerativeAI...');
     return new GoogleGenerativeAI(apiKey);
   }
 
-  // Basic Text / Business Chat - Usando fetch directo para control total
+  // SOLUCIÓN DIRECTA: Usar el endpoint que funciona con tu API key
   static async chatWithBusinessAI(message: string, history: any[] = []) {
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || '';
@@ -28,8 +26,8 @@ export class GeminiService {
         throw new Error('API key no configurada');
       }
 
-      // Usar la API REST directamente con v1 (no v1beta)
-      const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      // Usar gemini-pro con v1beta (el que funciona con tu key)
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${apiKey}`;
       
       const response = await fetch(url, {
         method: 'POST',
@@ -41,14 +39,45 @@ export class GeminiService {
             parts: [{
               text: message
             }]
-          }]
+          }],
+          generationConfig: {
+            maxOutputTokens: 500,
+            temperature: 0.7
+          }
         })
       });
 
       if (!response.ok) {
         const errorData = await response.json();
         console.error('❌ Error de API:', errorData);
-        throw new Error(`Error de API: ${errorData.error?.message || 'Error desconocido'}`);
+        
+        // Si falla, intentar con el modelo más básico
+        const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+        const fallbackResponse = await fetch(fallbackUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: message
+              }]
+            }]
+          })
+        });
+
+        if (!fallbackResponse.ok) {
+          throw new Error('No se pudo conectar con la API de Gemini');
+        }
+
+        const fallbackData = await fallbackResponse.json();
+        const fallbackText = fallbackData.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar una respuesta.';
+        
+        return {
+          text: fallbackText,
+          sources: []
+        };
       }
 
       const data = await response.json();
@@ -60,60 +89,58 @@ export class GeminiService {
       };
     } catch (error: any) {
       console.error('❌ Error en chatWithBusinessAI:', error);
-      throw new Error(error.message || 'Error al conectar con la IA');
+      throw new Error('Error al conectar con la IA. Por favor, intenta de nuevo.');
     }
   }
 
   // Low Latency FAQ
   static async quickFaq(question: string) {
-    const genAI = this.getAI();
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const result = await model.generateContent(question);
-    const response = await result.response;
-    return response.text();
+    return this.chatWithBusinessAI(question);
   }
 
-  // Image Generation - NOTA: Gemini no genera imágenes
+  // Image Generation
   static async generateMarketingImage(prompt: string, size: '1K' | '2K' | '4K' = '1K') {
-    throw new Error('La generación de imágenes requiere un modelo diferente (Imagen 3 o DALL-E)');
+    throw new Error('La generación de imágenes requiere un modelo diferente');
   }
 
-  // Image Analysis (Gemini 1.5 Flash con visión)
+  // Image Analysis
   static async editProductImage(base64Image: string, prompt: string) {
-    const genAI = this.getAI();
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || '';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${apiKey}`;
     
-    const imageParts = [{
-      inlineData: {
-        data: base64Image.split(',')[1],
-        mimeType: 'image/png'
-      }
-    }];
-    
-    const result = await model.generateContent([prompt, ...imageParts]);
-    const response = await result.response;
-    return response.text();
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: prompt },
+            {
+              inline_data: {
+                mime_type: 'image/png',
+                data: base64Image.split(',')[1]
+              }
+            }
+          ]
+        }]
+      })
+    });
+
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo analizar la imagen.';
   }
 
-  // Video Generation - Requiere API diferente
+  // Video Generation
   static async animatePoster(base64Image: string, prompt: string) {
-    throw new Error('La generación de videos requiere Veo API (diferente SDK)');
+    throw new Error('La generación de videos requiere Veo API');
   }
 
   // Map/Location search
   static async findNearbyDistributors(lat: number, lng: number) {
-    const genAI = this.getAI();
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
-    const prompt = `Basándote en las coordenadas ${lat}, ${lng}, sugiere tipos de lugares donde podría encontrar distribuidores de bebidas mayoristas o almacenes grandes relacionados con Refrescos Santander.`;
-    
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    
-    return {
-      text: response.text(),
-      sources: []
-    };
+    const prompt = `Basándote en las coordenadas ${lat}, ${lng}, sugiere tipos de lugares donde podría encontrar distribuidores de bebidas mayoristas.`;
+    return this.chatWithBusinessAI(prompt);
   }
 }
 
