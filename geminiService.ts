@@ -7,21 +7,25 @@ export class GeminiService {
     return new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
   }
 
-  // Basic Text / Business Chat (Gemini 3 Pro)
+  // Basic Text / Business Chat (Using gemini-pro for stability)
   static async chatWithBusinessAI(message: string, history: any[] = []) {
     const ai = this.getAI();
-    const chat = ai.chats.create({
-      model: 'gemini-3-pro-preview',
-      config: {
-        systemInstruction: 'Eres un experto asesor de ventas al por mayor para Refrescos Santander. Tu objetivo es ayudar a dueños de negocios a elegir los mejores productos de bebidas y optimizar su inventario. Sé profesional, persuasivo y amable.',
-        tools: [{ googleSearch: {} }]
-      }
+    // Using a more stable model and removing tools for troubleshooting
+    const model = ai.models.create({ model: 'gemini-pro' });
+    const chat = model.startChat({
+      history: history,
+      generationConfig: {
+        maxOutputTokens: 500,
+      },
     });
     
-    const response = await chat.sendMessage({ message });
+    const result = await chat.sendMessage(message);
+    const response = await result.response;
+    const text = response.text();
+
     return {
-      text: response.text,
-      sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || []
+      text: text,
+      sources: [] // Sources are disabled as Google Search tool is removed
     };
   }
 
