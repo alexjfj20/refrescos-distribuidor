@@ -7,7 +7,7 @@ export class GeminiService {
     // TEMPORAL: Fallback para desarrollo
     if (!apiKey && import.meta.env.DEV) {
       console.warn('⚠️ Usando API key de desarrollo temporal. Configura VITE_GEMINI_API_KEY en .env');
-      apiKey = 'TU_API_KEY_AQUI'; // REEMPLAZAR CON TU KEY REAL DE GOOGLE AI STUDIO
+      apiKey = 'AIzaSyC8your_actual_api_key_here'; // REEMPLAZAR CON TU KEY REAL DE GOOGLE AI STUDIO
     }
     
     if (!apiKey) {
