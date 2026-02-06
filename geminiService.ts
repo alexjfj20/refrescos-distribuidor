@@ -1,40 +1,36 @@
-
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export class GeminiService {
   private static getAI() {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || '';
+    let apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || '';
+    
+    // TEMPORAL: Fallback para desarrollo
+    if (!apiKey && import.meta.env.DEV) {
+      console.warn('⚠️ Usando API key de desarrollo temporal. Configura VITE_GEMINI_API_KEY en .env');
+      apiKey = 'TU_API_KEY_AQUI'; // REEMPLAZAR CON TU KEY REAL DE GOOGLE AI STUDIO
+    }
     
     if (!apiKey) {
-      console.error('❌ API Key no encontrada. Variables disponibles:', {
-        VITE_GEMINI_API_KEY: import.meta.env.VITE_GEMINI_API_KEY,
-        GEMINI_API_KEY: import.meta.env.GEMINI_API_KEY
-      });
+      console.error('❌ API Key no encontrada');
       throw new Error('La API key de Gemini no está configurada. Verifica las variables de entorno.');
     }
     
-    console.log('✅ API Key encontrada, inicializando GoogleGenAI...');
-    return new GoogleGenAI({ apiKey });
+    console.log('✅ API Key encontrada, inicializando GoogleGenerativeAI...');
+    return new GoogleGenerativeAI(apiKey);
   }
 
   // Basic Text / Business Chat
   static async chatWithBusinessAI(message: string, history: any[] = []) {
     try {
-      const ai = this.getAI();
+      const genAI = this.getAI();
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
       
-      // Usar generateContent en lugar de startChat para mayor compatibilidad
-      const response = await ai.models.generateContent({
-        model: 'gemini-pro',
-        contents: message,
-        config: {
-          maxOutputTokens: 500
-        }
-      });
-      
-      const text = response.text || 'No se pudo generar una respuesta.';
+      const result = await model.generateContent(message);
+      const response = await result.response;
+      const text = response.text();
 
       return {
-        text: text,
+        text: text || 'No se pudo generar una respuesta.',
         sources: []
       };
     } catch (error: any) {
@@ -43,102 +39,55 @@ export class GeminiService {
     }
   }
 
-  // Low Latency FAQ (Gemini 2.5 Flash Lite)
+  // Low Latency FAQ
   static async quickFaq(question: string) {
-    const ai = this.getAI();
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-lite-latest',
-      contents: question,
-      config: {
-        systemInstruction: 'Responde de forma extremadamente breve y concisa sobre dudas de distribución de bebidas.'
-      }
-    });
-    return response.text;
+    const genAI = this.getAI();
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const result = await model.generateContent(question);
+    const response = await result.response;
+    return response.text();
   }
 
-  // Image Generation (Gemini 3 Pro Image)
+  // Image Generation - NOTA: Gemini Pro no genera imágenes, solo analiza
   static async generateMarketingImage(prompt: string, size: '1K' | '2K' | '4K' = '1K') {
-    const ai = this.getAI();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-image-preview',
-      contents: { parts: [{ text: `High quality commercial beverage photography: ${prompt}` }] },
-      config: {
-        imageConfig: { aspectRatio: "1:1", imageSize: size }
-      }
-    });
-
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        return `data:image/png;base64,${part.inlineData.data}`;
-      }
-    }
-    throw new Error('No image generated');
+    throw new Error('La generación de imágenes requiere un modelo diferente (Imagen o DALL-E)');
   }
 
-  // Image Editing (Gemini 2.5 Flash Image)
+  // Image Analysis (Gemini Pro Vision)
   static async editProductImage(base64Image: string, prompt: string) {
-    const ai = this.getAI();
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [
-          { inlineData: { data: base64Image.split(',')[1], mimeType: 'image/png' } },
-          { text: prompt }
-        ]
-      }
-    });
-
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        return `data:image/png;base64,${part.inlineData.data}`;
-      }
-    }
-    return null;
-  }
-
-  // Video Generation (Veo 3.1 Fast)
-  static async animatePoster(base64Image: string, prompt: string) {
-    const ai = this.getAI();
-    let operation = await ai.models.generateVideos({
-      model: 'veo-3.1-fast-generate-preview',
-      prompt: prompt || 'Slow motion refreshing bubbles and water splashes',
-      image: {
-        imageBytes: base64Image.split(',')[1],
+    const genAI = this.getAI();
+    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+    
+    const imageParts = [{
+      inlineData: {
+        data: base64Image.split(',')[1],
         mimeType: 'image/png'
-      },
-      config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '16:9' }
-    });
-
-    while (!operation.done) {
-      await new Promise(resolve => setTimeout(resolve, 10000));
-      operation = await ai.operations.getVideosOperation({ operation: operation });
-    }
-
-    const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || '';
-    const response = await fetch(`${downloadLink}&key=${apiKey}`);
-    const blob = await response.blob();
-    return URL.createObjectURL(blob);
+      }
+    }];
+    
+    const result = await model.generateContent([prompt, ...imageParts]);
+    const response = await result.response;
+    return response.text();
   }
 
-  // Map Grounding (Gemini 2.5 Flash)
+  // Video Generation - Requiere API diferente
+  static async animatePoster(base64Image: string, prompt: string) {
+    throw new Error('La generación de videos requiere Veo API (diferente SDK)');
+  }
+
+  // Map/Location search
   static async findNearbyDistributors(lat: number, lng: number) {
-    const ai = this.getAI();
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: 'Find wholesale beverage distribution points or large warehouses in this area related to Refrescos Santander or similar businesses.',
-      config: {
-        tools: [{ googleMaps: {} }],
-        toolConfig: {
-          retrievalConfig: {
-            latLng: { latitude: lat, longitude: lng }
-          }
-        }
-      }
-    });
+    const genAI = this.getAI();
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    
+    const prompt = `Basándote en las coordenadas ${lat}, ${lng}, sugiere tipos de lugares donde podría encontrar distribuidores de bebidas mayoristas o almacenes grandes relacionados con Refrescos Santander.`;
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    
     return {
-      text: response.text,
-      sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || []
+      text: response.text(),
+      sources: []
     };
   }
 }
