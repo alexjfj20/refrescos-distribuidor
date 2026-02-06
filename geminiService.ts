@@ -4,9 +4,8 @@ export class GeminiService {
   private static getAI() {
     let apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || '';
     
-    // TEMPORAL: Fallback para desarrollo
     if (!apiKey && import.meta.env.DEV) {
-      console.warn('⚠️ Usando API key de desarrollo temporal. Configura VITE_GEMINI_API_KEY en .env');
+      console.warn('⚠️ Usando API key de desarrollo temporal.');
       apiKey = 'TU_API_KEY_AQUI';
     }
     
@@ -17,18 +16,92 @@ export class GeminiService {
     return new GoogleGenerativeAI(apiKey);
   }
 
-  // SOLUCIÓN DIRECTA: Usar el endpoint que funciona con tu API key
   static async chatWithBusinessAI(message: string, history: any[] = []) {
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || '';
       
       if (!apiKey) {
-        throw new Error('API key no configurada');
+        return {
+          text: '⚠️ El servicio de IA no está configurado correctamente. Por favor, contacta al administrador.',
+          sources: []
+        };
       }
 
-      // Usar gemini-pro con v1beta (el que funciona con tu key)
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${apiKey}`;
-      
+      // Intentar con diferentes modelos disponibles
+      const modelsToTry = [
+        'gemini-1.5-flash-latest',
+        'gemini-1.5-pro-latest',
+        'gemini-pro',
+        'gemini-1.0-pro-latest'
+      ];
+
+      for (const modelName of modelsToTry) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+          
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{
+                  text: message
+                }]
+              }],
+              generationConfig: {
+                maxOutputTokens: 500,
+                temperature: 0.7
+              }
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar una respuesta.';
+            
+            console.log(`✅ Respuesta exitosa con modelo: ${modelName}`);
+            
+            return {
+              text: text,
+              sources: []
+            };
+          }
+        } catch (err) {
+          console.log(`❌ Modelo ${modelName} falló, intentando siguiente...`);
+          continue;
+        }
+      }
+
+      // Si todos los modelos fallaron
+      return {
+        text: '⚠️ El servicio de IA está temporalmente no disponible. La API key puede estar deshabilitada o ser inválida. Por favor, genera una nueva API key en https://aistudio.google.com/app/apikey y actualízala en la configuración.',
+        sources: []
+      };
+
+    } catch (error: any) {
+      console.error('❌ Error en chatWithBusinessAI:', error);
+      return {
+        text: '❌ Error al conectar con el servicio de IA. Por favor, verifica que la API key sea válida en https://aistudio.google.com/app/apikey',
+        sources: []
+      };
+    }
+  }
+
+  static async quickFaq(question: string) {
+    return this.chatWithBusinessAI(question);
+  }
+
+  static async generateMarketingImage(prompt: string, size: '1K' | '2K' | '4K' = '1K') {
+    throw new Error('La generación de imágenes requiere un modelo diferente');
+  }
+
+  static async editProductImage(base64Image: string, prompt: string) {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || '';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${apiKey}`;
+    
+    try {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -36,108 +109,30 @@ export class GeminiService {
         },
         body: JSON.stringify({
           contents: [{
-            parts: [{
-              text: message
-            }]
-          }],
-          generationConfig: {
-            maxOutputTokens: 500,
-            temperature: 0.7
-          }
+            parts: [
+              { text: prompt },
+              {
+                inline_data: {
+                  mime_type: 'image/png',
+                  data: base64Image.split(',')[1]
+                }
+              }
+            ]
+          }]
         })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('❌ Error de API:', errorData);
-        
-        // Si falla, intentar con el modelo más básico
-        const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
-        const fallbackResponse = await fetch(fallbackUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: message
-              }]
-            }]
-          })
-        });
-
-        if (!fallbackResponse.ok) {
-          throw new Error('No se pudo conectar con la API de Gemini');
-        }
-
-        const fallbackData = await fallbackResponse.json();
-        const fallbackText = fallbackData.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar una respuesta.';
-        
-        return {
-          text: fallbackText,
-          sources: []
-        };
-      }
-
       const data = await response.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar una respuesta.';
-
-      return {
-        text: text,
-        sources: []
-      };
-    } catch (error: any) {
-      console.error('❌ Error en chatWithBusinessAI:', error);
-      throw new Error('Error al conectar con la IA. Por favor, intenta de nuevo.');
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo analizar la imagen.';
+    } catch {
+      return 'Error al analizar la imagen.';
     }
   }
 
-  // Low Latency FAQ
-  static async quickFaq(question: string) {
-    return this.chatWithBusinessAI(question);
-  }
-
-  // Image Generation
-  static async generateMarketingImage(prompt: string, size: '1K' | '2K' | '4K' = '1K') {
-    throw new Error('La generación de imágenes requiere un modelo diferente');
-  }
-
-  // Image Analysis
-  static async editProductImage(base64Image: string, prompt: string) {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || '';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${apiKey}`;
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: prompt },
-            {
-              inline_data: {
-                mime_type: 'image/png',
-                data: base64Image.split(',')[1]
-              }
-            }
-          ]
-        }]
-      })
-    });
-
-    const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo analizar la imagen.';
-  }
-
-  // Video Generation
   static async animatePoster(base64Image: string, prompt: string) {
     throw new Error('La generación de videos requiere Veo API');
   }
 
-  // Map/Location search
   static async findNearbyDistributors(lat: number, lng: number) {
     const prompt = `Basándote en las coordenadas ${lat}, ${lng}, sugiere tipos de lugares donde podría encontrar distribuidores de bebidas mayoristas.`;
     return this.chatWithBusinessAI(prompt);
