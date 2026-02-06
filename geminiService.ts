@@ -3,29 +3,30 @@ import { GoogleGenAI, Type, GenerateContentResponse, Modality } from "@google/ge
 
 export class GeminiService {
   private static getAI() {
-    // Use VITE_GEMINI_API_KEY which is safe to expose on the client
     return new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
   }
 
   // Basic Text / Business Chat (Using gemini-pro for stability)
   static async chatWithBusinessAI(message: string, history: any[] = []) {
     const ai = this.getAI();
-    // Using a more stable model and removing tools for troubleshooting
-    const model = ai.models.create({ model: 'gemini-pro' });
+    
+    // Correct model initialization
+    const model = ai.models.get('gemini-pro');
+    
     const chat = model.startChat({
       history: history,
       generationConfig: {
-        maxOutputTokens: 500,
-      },
+        maxOutputTokens: 500
+      }
     });
     
     const result = await chat.sendMessage(message);
-    const response = await result.response;
+    const response = result.response;
     const text = response.text();
 
     return {
       text: text,
-      sources: [] // Sources are disabled as Google Search tool is removed
+      sources: []
     };
   }
 
